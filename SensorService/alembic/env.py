@@ -1,16 +1,17 @@
 from logging.config import fileConfig
 
+from dotenv import load_dotenv
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
+from config import DatabaseConfig as DBconfig
 
 from model.base import BaseModel
 from model.type import TypeModel
 from model.sensor import SensorModel
 from model.data import DataModel
-
-
+db_config = DBconfig()
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
@@ -20,7 +21,7 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-config.set_main_option("sqlalchemy.url", "postgresql+asyncpg://postgres:205896aA@localhost:5432/sensor_service" + "?async_fallback=True")
+config.set_main_option("sqlalchemy.url", db_config.db_url + "?async_fallback=True")
 # add your model's MetaData object here
 # for 'autogenerate' support
 # from myapp import mymodel

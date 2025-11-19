@@ -1,14 +1,19 @@
 from datetime import datetime
 
-from fastapi import APIRouter
+from asyncpg import UniqueViolationError
+from fastapi import APIRouter, HTTPException
+from fastapi.params import Depends
+from sqlalchemy import select, literal
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from schema.sensor import SensorSchema
+from db import db
+from schema.sensor import SensorSchema, RegistrationSchema, UpdateSensorSchema
+from service.sensor import get_sensor_service
 
 router = APIRouter(prefix="/sensor", tags=["sensor"])
 
-@router.get("/")
-async def get_sensors():
-    mock_data = [
+mock_data = [
         {
             "mac": "A1:6B:8E:4C:5A:8E",
             "type": 1,
@@ -22,6 +27,31 @@ async def get_sensors():
             "last_heartbeat": datetime.now(),
         }
     ]
-    sensor_schema = [SensorSchema.model_validate(sensor, from_attributes=True) for sensor in mock_data]
-    return sensor_schema
+
+@router.post("/heartbeat/{mac}")
+async def heartbeat(mac: str, service = Depends(get_sensor_service)):
+    data = await service.heartbeat(mac)
+    return data
+
+@router.get("/{mac}")
+async def get_by_mac(mac: str, service = Depends(get_sensor_service)):
+    data = await service.get_by_mac(mac)
+    return data
+
+@router.get("/")
+async def get_sensors(service = Depends(get_sensor_service)):
+    data = await service.get()
+    return data
+
+@router.post("/")
+async def registration_sensor(sensor: RegistrationSchema, service = Depends(get_sensor_service)):
+    data = await service.create(sensor)
+    return data
+
+@router.put("/{mac}")
+async def update_sensor(mac: str, sensor: UpdateSensorSchema, service = Depends(get_sensor_service)):
+    data = await service.update(mac, sensor)
+    return data
+
+
 
